@@ -1286,5 +1286,86 @@ iniciar();
   })();
 })();
 </script>
+<!-- PLF-CAPACITACION-V1: videos de capacitacion por vista (se cargan solo al dar clic) -->
+<style>
+.plfcap-wrap{display:flex;justify-content:flex-end;margin:0 0 10px}
+.plfcap-btn{display:inline-flex;align-items:center;gap:10px;background:#3fc1cf;color:#0f1e33;font:700 15px Inter,'Segoe UI',Arial,sans-serif;padding:9px 18px;border-radius:22px;border:none;box-shadow:0 3px 10px rgba(0,0,0,.18);cursor:pointer;text-transform:none}
+.plfcap-btn:hover{filter:brightness(1.07)}
+.plfcap-btn small{font-weight:600;opacity:.75;font-size:13px}
+nav.tabs button.plfcap-nav{background:#3fc1cf!important;color:#0f1e33!important;font-weight:700!important;border-radius:8px;margin:4px 0 4px 8px;cursor:pointer}
+.plfcap-ov{position:fixed;inset:0;background:rgba(8,20,38,.82);z-index:2147482000;display:flex;align-items:center;justify-content:center;text-transform:none}
+.plfcap-box{background:#0f1e33;border-radius:16px;padding:16px 18px 14px;width:min(1240px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.5);border:2px solid #3fc1cf;color:#fff;font-family:Inter,'Segoe UI',Arial,sans-serif}
+.plfcap-hd{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:12px;font:700 20px Inter,'Segoe UI',Arial,sans-serif}
+.plfcap-hd span{color:#8fe3ec;font-weight:600;font-size:15px;white-space:nowrap}
+.plfcap-x{background:none;border:1px solid #3fc1cf;color:#fff;border-radius:16px;padding:5px 14px;font:600 14px Inter,'Segoe UI',Arial,sans-serif;cursor:pointer;margin-left:12px}
+.plfcap-box video{width:100%;max-height:74vh;border-radius:10px;background:#000;display:block}
+.plfcap-sub{color:#cfe9ee;font-size:14px;margin:0 0 14px}
+.plfcap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;max-height:68vh;overflow:auto;padding:2px}
+.plfcap-card{background:#fff;color:#13233d;border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid #d9e2ec;transition:transform .12s}
+.plfcap-card:hover{transform:translateY(-2px)}
+.plfcap-card img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#1b3a5c}
+.plfcap-card div{padding:10px 12px;font:700 14px Inter,'Segoe UI',Arial,sans-serif}
+.plfcap-card div span{display:block;font-weight:500;color:#667;font-size:12px;margin-top:3px}
+.plfcap-card.uno{outline:4px solid #3fc1cf}
+@media print{.plfcap-wrap,.plfcap-nav,.plfcap-ov{display:none!important}}
+</style>
+<script>
+(function(){
+  if (window.__PLFCAP__) return; window.__PLFCAP__ = 1;
+  var BASE = window.PLF_CAP_BASE || 'capacitacion/';
+  var ORDEN = ['navegar','resumen','consolidado','tendencia','resultados','inventarios','historicos'];
+  var CAT = null;
+  function vistaActiva(){ return document.querySelector('main .vista.on'); }
+  function cerrar(){ var o = document.querySelector('.plfcap-ov'); if (o) { var vd = o.querySelector('video'); if (vd) { try { vd.pause(); } catch(e) {} } o.remove(); } }
+  function ov(html){ cerrar(); var o = document.createElement('div'); o.className = 'plfcap-ov'; o.innerHTML = html;
+    o.addEventListener('click', function(ev){ if (ev.target === o) cerrar(); }); document.body.appendChild(o);
+    var x = o.querySelector('.plfcap-x'); if (x) x.onclick = cerrar; return o; }
+  function ver(k){
+    var v = CAT[k]; if (!v) return;
+    var o = ov('<div class="plfcap-box"><div class="plfcap-hd"><div>▶ ' + v.t + '</div><div><span>Video guía · ' + v.d + '</span><button class="plfcap-x">✕ Cerrar</button></div></div>'
+      + '<video controls autoplay playsinline preload="auto" poster="' + BASE + k + '.jpg?v=' + (v.v||'') + '"><source src="' + BASE + k + '.mp4?v=' + (v.v||'') + '" type="video/mp4"></video></div>');
+    var vd = o.querySelector('video'); var p = vd.play && vd.play(); if (p && p.catch) p.catch(function(){});
+  }
+  function centro(){
+    var ks = ORDEN.filter(function(k){ return CAT[k]; });
+    var h = '<div class="plfcap-box"><div class="plfcap-hd"><div>🎓 Centro de capacitación</div><div><span>' + ks.length + ' videos</span><button class="plfcap-x">✕ Cerrar</button></div></div>'
+      + '<p class="plfcap-sub">Videos cortos que explican cada vista del tablero. Si es tu primera vez, empieza por «Cómo navegar el tablero».</p><div class="plfcap-grid">';
+    ks.forEach(function(k){ var v = CAT[k];
+      h += '<div class="plfcap-card' + (k === 'navegar' ? ' uno' : '') + '" data-k="' + k + '"><img loading="lazy" src="' + BASE + k + '.jpg?v=' + (v.v||'') + '" alt=""><div>' + v.t + '<span>' + v.d + (k === 'navegar' ? ' · Empieza aquí' : '') + '</span></div></div>'; });
+    var o = ov(h + '</div></div>');
+    o.querySelectorAll('.plfcap-card').forEach(function(c){ c.onclick = function(){ ver(c.getAttribute('data-k')); }; });
+  }
+  function boton(){
+    var v = vistaActiva(); if (!v) return;
+    var k = v.id.slice(2); if (!CAT[k]) return;
+    var w = v.firstElementChild; if (w && w.classList && w.classList.contains('plfcap-wrap')) return;
+    w = document.createElement('div'); w.className = 'plfcap-wrap';
+    w.innerHTML = '<button class="plfcap-btn" type="button">▶ Cómo leer esta vista <small>· video ' + CAT[k].d + '</small></button>';
+    w.firstChild.onclick = function(){ ver(k); }; v.insertBefore(w, v.firstChild);
+  }
+  function menu(){
+    var nav = document.getElementById('tabs'); if (!nav || !nav.querySelector('button') || nav.querySelector('.plfcap-nav')) return;
+    var a = document.createElement('button'); a.type = 'button'; a.className = 'plfcap-nav'; a.textContent = '🎓 Centro de capacitación';
+    a.onclick = function(ev){ ev.preventDefault(); centro(); }; nav.appendChild(a);
+  }
+  function iniciar(){
+    CAT = window.PLF_CAP || {};
+    if (!Object.keys(CAT).length) return;
+    menu(); boton(); setInterval(function(){ try { boton(); menu(); } catch(e) {} }, 700);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') cerrar(); });
+    window.PLFCAP = {ver: ver, centro: centro};
+  }
+  function cargar(){
+    if (window.PLF_CAP) return iniciar();
+    var s = document.createElement('script'); var d = new Date();
+    s.src = BASE + 'catalogo.js?d=' + d.getFullYear() + (d.getMonth() + 1) + d.getDate() + d.getHours();
+    s.onload = function(){ try { iniciar(); } catch(e) {} };
+    s.onerror = function(){};
+    document.head.appendChild(s);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cargar); else cargar();
+})();
+</script>
+<!-- /PLF-CAPACITACION-V1 -->
 </body>
 </html>
